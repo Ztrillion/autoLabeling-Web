@@ -1,8 +1,20 @@
 from fastapi import FastAPI,UploadFile, File
-import torch,io
+from logging.handlers import TimedRotatingFileHandler
+import torch,io,logging
 from PIL import Image
 import pandas as pd
 
+class LoggerWriter:
+    def __init__(self, level):
+        self.level = level
+
+    def write(self, message):
+        if message != '\n':
+            self.level(message)
+
+    def flush(self):
+        self.level(sys.stderr)
+        
 app = FastAPI()
 
 custom_model = torch.hub.load('ultralytics/yolov5', 'custom', path='lib/custom_model.pt', force_reload=True)
@@ -41,4 +53,15 @@ async def predict(file: UploadFile = File(...)):
     
     combined_data = pd.concat([custom_data, general_data], ignore_index=True)
     
+    formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
+    handler = TimedRotatingFileHandler('lib/error.log', when="midnight", interval=1, encoding='utf8')
+    handler.suffix = "%Y-%m-%d"
+    handler.setFormatter(formatter)
+    logger = logging.getLogger()
+    logger.setLevel(logging.ERROR)
+    logger.addHandler(handler)
+    sys.stdout = LoggerWriter(logging.debug)
+    sys.stderr = LoggerWriter(logging.warning)    
+    
     return combined_data.to_dict(orient="records")
+
