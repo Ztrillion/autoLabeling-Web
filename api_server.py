@@ -1,6 +1,6 @@
 from fastapi import FastAPI,UploadFile, File
 from logging.handlers import TimedRotatingFileHandler
-import torch,io,logging
+import torch,io,logging,sys
 from PIL import Image
 import pandas as pd
 
